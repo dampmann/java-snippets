@@ -2,7 +2,7 @@
 This repository includes some java snippets I liked to play with
 
 + **jni (Java Native Interface)**    
-..+**Printer**
+..* Printer
   Use a very simple C++ library function in Java to print a message.
   I tried this on a mac.
 
