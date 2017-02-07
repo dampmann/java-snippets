@@ -20,7 +20,9 @@ This repository includes some java snippets I liked to play with
   JAVA_HOME should look like.
 
 
-  Then compile the C++ program lib.cpp like that
+  Then compile the C++ program lib.cpp like that:
+  
+  
   ``g++ -Wall -shared -fPIC -I$JAVA_HOME/include/ \
       -I$JAVA_HOME/include/darwin -o libmylib.dylib lib.cpp``
 
