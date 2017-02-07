@@ -23,7 +23,7 @@ This repository includes some java snippets I liked to play with
   Then compile the C++ program lib.cpp like that:
   
   
-  ``g++ -Wall -shared -fPIC -I$JAVA_HOME/include/ \
+  ``g++ -Wall -shared -fPIC -I$JAVA_HOME/include/ 
       -I$JAVA_HOME/include/darwin -o libmylib.dylib lib.cpp``
 
 
