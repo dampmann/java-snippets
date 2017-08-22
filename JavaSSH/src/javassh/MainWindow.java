@@ -13,11 +13,8 @@ import com.jcraft.jsch.UIKeyboardInteractive;
 import com.jcraft.jsch.UserInfo;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
-import static java.awt.event.KeyEvent.VK_ENTER;
 import java.awt.event.KeyListener;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PipedInputStream;
@@ -26,13 +23,14 @@ import java.io.UnsupportedEncodingException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.Timer;
+import javax.swing.UIManager;
 
 /**
  *
@@ -43,13 +41,12 @@ public class MainWindow {
     private final JPanel mainPanel;
     private final JPanel controlPanel;
     private final JPanel screenPanel;
-    private final JPanel commandPanel;
     private final JSch jsch;
     private final JButton connectButton;
     private final JButton closeButton;
     private final JTextField userField;
     private final JTextField hostField;
-    private final JTextField commandField;
+    private final JTextField statusField;
     private final JTextArea screen;
     private Session session;
     private Channel channel;
@@ -94,27 +91,22 @@ public class MainWindow {
         controlPanel.add(closeButton);
         screenPanel = new JPanel(new BorderLayout());
         screen = new JTextArea();
-        screen.setEditable(false);
-        screenPanel.add(screen, BorderLayout.CENTER);
-        commandField = new JTextField();
-        commandField.addKeyListener( new KeyListener() {
+        screen.setEditable(true);
+        screen.addKeyListener( new KeyListener() {
+            
             @Override
             public void keyTyped(KeyEvent e) {
+                e.consume();
                 return;
             }
 
             @Override
             public void keyPressed(KeyEvent e) {
-                System.out.println("key pressed "+ e.getKeyChar() + " " + e.getKeyCode() + " " + VK_ENTER);
-                if(e.getKeyCode() == VK_ENTER) {
-                    String command = commandField.getText();
-                    command += "\n";
-                    try {
-                        pout.write(command.getBytes());
-                    } catch (IOException ex) {
-                        Logger.getLogger(MainWindow.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                    commandField.setText("");
+                try {
+                    pout.write(e.getKeyChar());
+                    e.consume();
+                } catch (IOException ex) {
+                    Logger.getLogger(MainWindow.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
 
@@ -124,15 +116,14 @@ public class MainWindow {
             }
             
         });
-        
-        commandPanel = new JPanel(new BorderLayout());
-        commandPanel.add(commandField, BorderLayout.NORTH);
-        commandPanel.setBorder(BorderFactory.createTitledBorder("Enter commands"));        
+        screenPanel.add(screen, BorderLayout.CENTER);
+        statusField = new JTextField();
+        statusField.setEditable(false);
+        statusField.setBackground(UIManager.getColor("TextField.disabledBackground"));
         mainPanel.add(controlPanel, BorderLayout.NORTH);
-        mainPanel.add(screenPanel, BorderLayout.CENTER);
-        mainPanel.add(commandPanel, BorderLayout.SOUTH);
+        mainPanel.add(new JScrollPane(screenPanel), BorderLayout.CENTER);
+        mainPanel.add(statusField, BorderLayout.SOUTH);
         mainWindow.setContentPane(mainPanel);
-        //mainWindow.pack();
         mainWindow.setVisible(true);
     }
     
@@ -149,7 +140,8 @@ public class MainWindow {
                 //screen.removeAll();
                 try {
                     //System.out.println(bout.size());
-                    screen.setText(bout.toString("UTF-8"));
+                    screen.append(bout.toString("UTF-8"));
+                    bout.reset();
                 } catch (UnsupportedEncodingException ex) {
                     Logger.getLogger(MainWindow.class.getName()).log(Level.SEVERE, null, ex);
                 }
