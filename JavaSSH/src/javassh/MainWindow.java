@@ -12,12 +12,16 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UIKeyboardInteractive;
 import com.jcraft.jsch.UserInfo;
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
 import static java.awt.event.KeyEvent.VK_ENTER;
 import java.awt.event.KeyListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -49,33 +53,38 @@ public class MainWindow {
     private final JTextArea screen;
     private Session session;
     private Channel channel;
-    private ByteArrayInputStream bin;
     private ByteArrayOutputStream bout; 
-    private byte[] commandBuffer;
     private Timer displayTimer;
+    private PipedInputStream pin;
+    private PipedOutputStream pout;
     
     public MainWindow() {
         jsch = new JSch();
         try {
-            jsch.addIdentity("/Users/peer/.ssh/WEB-SERVICES-I.pem");
+            jsch.addIdentity("/Users/peer/.ssh/PEER-AWS-Cloudian.pem");
         } catch (JSchException ex) {
             Logger.getLogger(MainWindow.class.getName()).log(Level.SEVERE, null, ex);
         }
         bout = new ByteArrayOutputStream(256);
-        commandBuffer = new byte[256];
-        bin = new ByteArrayInputStream(commandBuffer);
+        pout = new PipedOutputStream();
+        try {
+            pin = new PipedInputStream(pout);
+        } catch (IOException ex) {
+            Logger.getLogger(MainWindow.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
         mainWindow = new JFrame();
         mainWindow.setSize(400, 400);
         mainWindow.setTitle("Java SSH Client");
         mainWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        controlPanel = new JPanel();
+        controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         userField = new JTextField();
-        userField.setText("peer");
+        userField.setText("ec2-user");
         controlPanel.add(userField);
         hostField = new JTextField();
-        hostField.setText("mysysadmin.de");
+        hostField.setText("13.59.62.96");
         controlPanel.add(hostField);
         connectButton = new JButton("Connect");
         connectButton.addActionListener(e -> connectToHost());
@@ -86,7 +95,6 @@ public class MainWindow {
         screenPanel = new JPanel(new BorderLayout());
         screen = new JTextArea();
         screen.setEditable(false);
-        screen.setText("HUHU");
         screenPanel.add(screen, BorderLayout.CENTER);
         commandField = new JTextField();
         commandField.addKeyListener( new KeyListener() {
@@ -100,12 +108,13 @@ public class MainWindow {
                 System.out.println("key pressed "+ e.getKeyChar() + " " + e.getKeyCode() + " " + VK_ENTER);
                 if(e.getKeyCode() == VK_ENTER) {
                     String command = commandField.getText();
-                    System.out.println(command);
-                    commandField.removeAll();
-                    System.arraycopy(command.getBytes(), 0 , commandBuffer, 0, command.getBytes().length);
-                    commandBuffer[command.length()] = '\n';
-                    System.out.println(commandBuffer);
-                    bin.reset();
+                    command += "\n";
+                    try {
+                        pout.write(command.getBytes());
+                    } catch (IOException ex) {
+                        Logger.getLogger(MainWindow.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    commandField.setText("");
                 }
             }
 
@@ -129,17 +138,17 @@ public class MainWindow {
     
     public void connectToHost() {
         try {
-            session = jsch.getSession(userField.getText(), hostField.getText(), 8010);
+            session = jsch.getSession(userField.getText(), hostField.getText(), 22);
             session.setUserInfo(new MyUserInfo());
-            session.setInputStream(bin);
+            session.setInputStream(pin);
             session.setOutputStream(bout);
             session.connect();
             channel = session.openChannel("shell");
             channel.connect();
             displayTimer = new Timer(500, e -> {
-                screen.removeAll();
+                //screen.removeAll();
                 try {
-                    System.out.println(bout.size());
+                    //System.out.println(bout.size());
                     screen.setText(bout.toString("UTF-8"));
                 } catch (UnsupportedEncodingException ex) {
                     Logger.getLogger(MainWindow.class.getName()).log(Level.SEVERE, null, ex);
