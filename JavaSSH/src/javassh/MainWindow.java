@@ -5,6 +5,7 @@
  */
 package javassh;
 
+import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
@@ -47,6 +48,7 @@ public class MainWindow {
     private final JTextField commandField;
     private final JTextArea screen;
     private Session session;
+    private Channel channel;
     private ByteArrayInputStream bin;
     private ByteArrayOutputStream bout; 
     private byte[] commandBuffer;
@@ -95,10 +97,14 @@ public class MainWindow {
 
             @Override
             public void keyPressed(KeyEvent e) {
+                System.out.println("key pressed "+ e.getKeyChar() + " " + e.getKeyCode() + " " + VK_ENTER);
                 if(e.getKeyCode() == VK_ENTER) {
                     String command = commandField.getText();
+                    System.out.println(command);
                     commandField.removeAll();
                     System.arraycopy(command.getBytes(), 0 , commandBuffer, 0, command.getBytes().length);
+                    commandBuffer[command.length()] = '\n';
+                    System.out.println(commandBuffer);
                     bin.reset();
                 }
             }
@@ -128,7 +134,8 @@ public class MainWindow {
             session.setInputStream(bin);
             session.setOutputStream(bout);
             session.connect();
-            
+            channel = session.openChannel("shell");
+            channel.connect();
             displayTimer = new Timer(500, e -> {
                 screen.removeAll();
                 try {
